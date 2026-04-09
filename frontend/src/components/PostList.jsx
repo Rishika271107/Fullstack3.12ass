@@ -4,6 +4,8 @@ import { useAuth } from './AuthContext';
 
 const PostList = () => {
   const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const { user } = useAuth();
 
   useEffect(() => {
@@ -11,20 +13,31 @@ const PostList = () => {
   }, []);
 
   const fetchPosts = async () => {
-    const res = await axios.get('http://localhost:5000/api/posts');
-    setPosts(res.data);
+    try {
+      const res = await axios.get('http://localhost:5000/api/posts');
+      setPosts(res.data);
+      setLoading(false);
+    } catch (err) {
+      setError('Failed to fetch posts');
+      setLoading(false);
+    }
   };
 
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this post?')) {
+      const originalPosts = [...posts];
+      setPosts(posts.filter(post => post._id !== id)); // Optimistic update
       try {
         await axios.delete(`http://localhost:5000/api/posts/${id}`);
-        setPosts(posts.filter(post => post._id !== id));
       } catch (err) {
-        alert('Delete failed');
+        setPosts(originalPosts); // Revert on error
+        setError('Delete failed');
       }
     }
   };
+
+  if (loading) return <p>Loading...</p>;
+  if (error) return <p>{error}</p>;
 
   return (
     <div>
